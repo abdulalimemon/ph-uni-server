@@ -1,5 +1,4 @@
 import { Schema, model } from 'mongoose';
-import bcrypt from 'bcrypt';
 import {
   TStudentModel,
   TGuardian,
@@ -7,7 +6,6 @@ import {
   TName,
   TStudent,
 } from './student.interface';
-import config from '../../config';
 
 const nameSchema = new Schema<TName>({
   firstName: {
@@ -83,11 +81,16 @@ const localGuardianSchema = new Schema<TLocalGuardian>({
 
 const studentSchema = new Schema<TStudent, TStudentModel>({
   id: { type: String, required: true, unique: true },
+  user: {
+    type: Schema.Types.ObjectId,
+    required: [true, 'User id is required.'],
+    unique: true,
+    ref: 'User',
+  },
   name: {
     type: nameSchema,
     required: [true, 'Name is required.'],
   },
-  password: { type: String, required: true },
   gender: {
     type: String,
     enum: {
@@ -140,32 +143,7 @@ const studentSchema = new Schema<TStudent, TStudentModel>({
     required: [true, 'Local guardian is required.'],
   },
   profileImg: { type: String, trim: true },
-  isActive: {
-    type: String,
-    enum: {
-      values: ['active', 'blocked'],
-    },
-    default: 'active',
-  },
   isDeleted: { type: Boolean, default: false },
-});
-
-// pre save middleware/hook
-studentSchema.pre('save', async function (next) {
-  // eslint-disable-next-line @typescript-eslint/no-this-alias
-  const user = this;
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bcrypt_salt_round),
-  );
-
-  next();
-});
-
-// post save middleware/hook
-studentSchema.post('save', function (doc, next) {
-  doc.password = '';
-  next();
 });
 
 // Query middleware
